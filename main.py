@@ -22,22 +22,26 @@ client = Client("Dhahlan2000/predict_freshness_and_ripeness")
 @app.post("/predict")
 async def predict_image(image: UploadFile = File(...)):
     try:
-        temp_filename = os.path.join(tempfile.gettempdir(), f"temp_{uuid.uuid4().hex}_{image.filename}")
+        temp_filename = f"temp_{uuid.uuid4().hex}_{image.filename}"
         async with aiofiles.open(temp_filename, 'wb') as out_file:
             content = await image.read()
             await out_file.write(content)
 
-        # Predict using Gradio client
-        result = await client.predict(  # remove await if client.predict is not async
+        print(f"[INFO] Saved image as {temp_filename}")
+
+        # ❌ Don't use 'await' here — it's not an async function
+        result = client.predict(
             image=handle_file(temp_filename),
             api_name="/predict"
         )
-        # After prediction
-        label = result['label'] if isinstance(result, dict) and 'label' in result else str(result)
-        
+
+        print(f"[INFO] Gradio result: {result}")
+
         os.remove(temp_filename)
 
+        label = result['label'] if isinstance(result, dict) else str(result)
         return JSONResponse(content={"prediction": label})
     
     except Exception as e:
+        print(f"[ERROR] Prediction failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
