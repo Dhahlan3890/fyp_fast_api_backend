@@ -1,0 +1,10 @@
+.venv
+*.pyc
+__pycache__/
+.venv/
+ripeness_cnn_model.pth
+
+# PyTorch model files
+*.pt
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
