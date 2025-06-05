@@ -5,10 +5,10 @@ from gradio_client import Client, handle_file
 import aiofiles
 import os
 import uuid
+import tempfile
 
 app = FastAPI()
 
-# Allow all origins (adjust for production)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -17,28 +17,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize Gradio client
 client = Client("Dhahlan2000/predict_freshness_and_ripeness")
 
 @app.post("/predict")
 async def predict_image(image: UploadFile = File(...)):
     try:
-        # Save uploaded file temporarily
-        temp_filename = f"temp_{uuid.uuid4().hex}_{image.filename}"
+        temp_filename = os.path.join(tempfile.gettempdir(), f"temp_{uuid.uuid4().hex}_{image.filename}")
         async with aiofiles.open(temp_filename, 'wb') as out_file:
             content = await image.read()
             await out_file.write(content)
 
-        # Use Gradio client to predict
-        result = client.predict(
+        # Predict using Gradio client
+        result = await client.predict(  # remove await if client.predict is not async
             image=handle_file(temp_filename),
             api_name="/predict"
         )
 
-        # Remove temp file
         os.remove(temp_filename)
 
-        # Return result
         return JSONResponse(content={"prediction": result})
     
     except Exception as e:
