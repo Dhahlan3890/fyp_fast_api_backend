@@ -32,10 +32,12 @@ async def predict_image(image: UploadFile = File(...)):
             image=handle_file(temp_filename),
             api_name="/predict"
         )
-
+        # After prediction
+        label = result['label'] if isinstance(result, dict) and 'label' in result else str(result)
+        
         os.remove(temp_filename)
 
-        return JSONResponse(content={"prediction": result})
+        return JSONResponse(content={"prediction": label})
     
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
