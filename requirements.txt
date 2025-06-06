@@ -3,3 +3,6 @@ uvicorn
 gradio_client
 aiofiles
 python-multipart
+torch
+pillow
+torchvision
