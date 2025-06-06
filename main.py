@@ -17,7 +17,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-client = Client("Dhahlan2000/predict_freshness_and_ripeness")
+# client = Client("Dhahlan2000/predict_freshness_and_ripeness")
+client = Client("Dhahlan2000/freshness_detector_updated")
 
 @app.post("/predict")
 async def predict_image(image: UploadFile = File(...)):
