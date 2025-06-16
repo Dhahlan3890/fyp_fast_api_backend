@@ -28,46 +28,14 @@ app.add_middleware(
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Configuration
-IMG_SIZE = 128
 MODEL_PATH = "ripeness_cnn_model_aug.pth"  # Path to the saved model
 
 # Define class names in the correct order
-class_names = [
-    "Fresh Bellpepper",
-    "Intermediate Fresh Bellpepper",
-    "Rotten Bellpepper",
-    "Fresh Carrot",
-    "Intermediate Fresh Carrot",
-    "Rotten Carrot",
-    "Fresh Cucumber",
-    "Intermediate Fresh Cucumber",
-    "Rotten Cucumber",
-    "Fresh Potato",
-    "Intermediate Fresh Potato",
-    "Rotten Potato",
-    "Fresh Tomato",
-    "Intermediate Fresh Tomato",
-    "Rotten Tomato",
-    "Ripe Apple",
-    "Ripe Banana",
-    "Ripe Mango",
-    "Ripe Orange",
-    "Ripe Strawberry",
-    "Rotten Apple",
-    "Rotten Banana",
-    "Rotten Mango",
-    "Rotten Orange",
-    "Rotten Strawberry",
-    "Unripe Apple",
-    "Unripe Banana",
-    "Unripe Mango",
-    "Unripe Orange",
-    "Unripe Strawberry"
-]
+class_names = ['Bellpepper_fresh', 'Bellpepper_intermediate_fresh', 'Bellpepper_rotten', 'Carrot_fresh', 'Carrot_intermediate_fresh', 'Carrot_rotten', 'Cucumber_fresh', 'Cucumber_intermediate_fresh', 'Cucumber_rotten', 'Potato_fresh', 'Potato_intermediate_fresh', 'Potato_rotten', 'Tomato_fresh', 'Tomato_intermediate_fresh', 'Tomato_rotten', 'ripe_apple', 'ripe_banana', 'ripe_mango', 'ripe_oranges', 'ripe_strawberry', 'rotten_apple', 'rotten_banana', 'rotten_mango', 'rotten_oranges', 'rotten_strawberry', 'unripe_apple', 'unripe_banana', 'unripe_mango', 'unripe_oranges', 'unripe_strawberry']
 
 # Define transforms
 val_transforms = transforms.Compose([
-    transforms.Resize((IMG_SIZE, IMG_SIZE)),
+    transforms.Resize((128, 128)),
     transforms.ToTensor(),
     transforms.Normalize([0.5]*3, [0.5]*3)
 ])
@@ -84,16 +52,18 @@ class RipenessCNN(nn.Module):
         self.fc2 = nn.Linear(256, num_classes)
 
     def forward(self, x):
-        x = self.pool(F.relu(self.conv1(x)))  # 64x64
-        x = self.pool(F.relu(self.conv2(x)))  # 32x32
+        x = self.pool(F.relu(self.conv1(x)))
+        x = self.pool(F.relu(self.conv2(x)))
         x = self.dropout(x)
         x = x.view(x.size(0), -1)
         x = F.relu(self.fc1(x))
         return self.fc2(x)
 
 # Load model
-model = RipenessCNN(num_classes=len(class_names)).to(device)
-model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
+num_classes = len(class_names)
+
+model = RipenessCNN(num_classes)
+model.load_state_dict(torch.load(MODEL_PATH, map_location=torch.device('cpu')))
 model.eval()
 
 
@@ -114,14 +84,15 @@ async def predict_image(image: UploadFile = File(...)):
         with torch.no_grad():
             outputs = model(image_tensor)
             _, preds = torch.max(outputs, 1)
+            probability = F.softmax(outputs, dim=1)[0] * 100
             predicted_class = class_names[preds.item()]
 
         print(f"[INFO] Gradio predicted_class: {predicted_class}")
 
         os.remove(temp_filename)
 
-        return JSONResponse(content={"prediction": predicted_class})
-    
+        return JSONResponse(content={"prediction": predicted_class, "probability": probability[preds.item()].item()})
+
     except Exception as e:
         print(f"[ERROR] Prediction failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
