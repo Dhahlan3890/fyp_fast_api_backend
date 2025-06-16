@@ -25,7 +25,7 @@ app.add_middleware(
 
 
 # Set device
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Configuration
 MODEL_PATH = "ripeness_cnn_model_aug.pth"  # Path to the saved model
