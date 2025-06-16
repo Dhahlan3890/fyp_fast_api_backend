@@ -25,9 +25,10 @@ app.add_middleware(
 
 
 # Set device
-# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Configuration
+IMG_SIZE = 128
 MODEL_PATH = "ripeness_cnn_model_aug.pth"  # Path to the saved model
 
 # Define class names in the correct order
@@ -35,7 +36,7 @@ class_names = ['Bellpepper_fresh', 'Bellpepper_intermediate_fresh', 'Bellpepper_
 
 # Define transforms
 val_transforms = transforms.Compose([
-    transforms.Resize((128, 128)),
+    transforms.Resize((IMG_SIZE, IMG_SIZE)),
     transforms.ToTensor(),
     transforms.Normalize([0.5]*3, [0.5]*3)
 ])
@@ -52,18 +53,16 @@ class RipenessCNN(nn.Module):
         self.fc2 = nn.Linear(256, num_classes)
 
     def forward(self, x):
-        x = self.pool(F.relu(self.conv1(x)))
-        x = self.pool(F.relu(self.conv2(x)))
+        x = self.pool(F.relu(self.conv1(x)))  # 64x64
+        x = self.pool(F.relu(self.conv2(x)))  # 32x32
         x = self.dropout(x)
         x = x.view(x.size(0), -1)
         x = F.relu(self.fc1(x))
         return self.fc2(x)
 
 # Load model
-num_classes = len(class_names)
-
-model = RipenessCNN(num_classes)
-model.load_state_dict(torch.load(MODEL_PATH, map_location=torch.device('cpu')))
+model = RipenessCNN(num_classes=len(class_names)).to(device)
+model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
 model.eval()
 
 
@@ -84,15 +83,14 @@ async def predict_image(image: UploadFile = File(...)):
         with torch.no_grad():
             outputs = model(image_tensor)
             _, preds = torch.max(outputs, 1)
-            probability = F.softmax(outputs, dim=1)[0] * 100
             predicted_class = class_names[preds.item()]
 
         print(f"[INFO] Gradio predicted_class: {predicted_class}")
 
         os.remove(temp_filename)
 
-        return JSONResponse(content={"prediction": predicted_class, "probability": probability[preds.item()].item()})
-
+        return JSONResponse(content={"prediction": predicted_class})
+    
     except Exception as e:
         print(f"[ERROR] Prediction failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
