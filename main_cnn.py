@@ -32,38 +32,7 @@ IMG_SIZE = 128
 MODEL_PATH = "ripeness_cnn_model_aug.pth"  # Path to the saved model
 
 # Define class names in the correct order
-class_names = [
-    "Fresh Bellpepper",
-    "Intermediate Fresh Bellpepper",
-    "Rotten Bellpepper",
-    "Fresh Carrot",
-    "Intermediate Fresh Carrot",
-    "Rotten Carrot",
-    "Fresh Cucumber",
-    "Intermediate Fresh Cucumber",
-    "Rotten Cucumber",
-    "Fresh Potato",
-    "Intermediate Fresh Potato",
-    "Rotten Potato",
-    "Fresh Tomato",
-    "Intermediate Fresh Tomato",
-    "Rotten Tomato",
-    "Ripe Apple",
-    "Ripe Banana",
-    "Ripe Mango",
-    "Ripe Orange",
-    "Ripe Strawberry",
-    "Rotten Apple",
-    "Rotten Banana",
-    "Rotten Mango",
-    "Rotten Orange",
-    "Rotten Strawberry",
-    "Unripe Apple",
-    "Unripe Banana",
-    "Unripe Mango",
-    "Unripe Orange",
-    "Unripe Strawberry"
-]
+class_names = ['Bellpepper_fresh', 'Bellpepper_intermediate_fresh', 'Bellpepper_rotten', 'Carrot_fresh', 'Carrot_intermediate_fresh', 'Carrot_rotten', 'Cucumber_fresh', 'Cucumber_intermediate_fresh', 'Cucumber_rotten', 'Potato_fresh', 'Potato_intermediate_fresh', 'Potato_rotten', 'Tomato_fresh', 'Tomato_intermediate_fresh', 'Tomato_rotten', 'ripe_apple', 'ripe_banana', 'ripe_mango', 'ripe_oranges', 'ripe_strawberry', 'rotten_apple', 'rotten_banana', 'rotten_mango', 'rotten_oranges', 'rotten_strawberry', 'unripe_apple', 'unripe_banana', 'unripe_mango', 'unripe_oranges', 'unripe_strawberry']
 
 # Define transforms
 val_transforms = transforms.Compose([

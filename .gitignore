@@ -8,3 +8,5 @@ ripeness_cnn_model.pth
 *.pt
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/
+
+new_dataset/
