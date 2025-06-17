@@ -59,11 +59,11 @@ async def predict_image(image: UploadFile = File(...)):
 
         image = Image.open(temp_filename).convert('RGB')
 
-        image_tensor = transform(image).unsqueeze(0)
+        img_tensor = transform(image).unsqueeze(0)
         img_tensor = img_tensor.to(next(model.parameters()).device)
 
         with torch.no_grad():
-            outputs = model(image_tensor)
+            outputs = model(img_tensor)
             _, preds = torch.max(outputs, 1)
             predicted_class = class_names[preds.item()]
 
