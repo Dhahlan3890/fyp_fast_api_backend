@@ -6,12 +6,6 @@ import aiofiles
 import os
 import uuid
 import tempfile
-import os
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from PIL import Image
-from torchvision import transforms, models
 
 app = FastAPI()
 
@@ -23,29 +17,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-
-# Define class names in the correct order
-class_names = ['Bellpepper_fresh', 'Bellpepper_intermediate_fresh', 'Bellpepper_rotten', 'Carrot_fresh', 'Carrot_intermediate_fresh', 'Carrot_rotten', 'Cucumber_fresh', 'Cucumber_intermediate_fresh', 'Cucumber_rotten', 'Potato_fresh', 'Potato_intermediate_fresh', 'Potato_rotten', 'Tomato_fresh', 'Tomato_intermediate_fresh', 'Tomato_rotten', 'ripe_apple', 'ripe_banana', 'ripe_mango', 'ripe_oranges', 'ripe_strawberry', 'rotten_apple', 'rotten_banana', 'rotten_mango', 'rotten_oranges', 'rotten_strawberry', 'unripe_apple', 'unripe_banana', 'unripe_mango', 'unripe_oranges', 'unripe_strawberry']
-num_classes = len(class_names)
-
-# Define transforms
-transform = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-    transforms.Normalize([0.5]*3, [0.5]*3)
-])
-
-
-# Define the model architecture
-model = models.resnet18(pretrained=False)
-model.fc = nn.Linear(model.fc.in_features, num_classes)
-model.load_state_dict(torch.load("best_model.pth", map_location=torch.device('cpu')))
-model.eval()
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = model.to(device)
-
+# client = Client("Dhahlan2000/predict_freshness_and_ripeness")
+client = Client("Dhahlan2000/freshness_detector_updated")
 
 @app.post("/predict")
 async def predict_image(image: UploadFile = File(...)):
@@ -57,21 +30,18 @@ async def predict_image(image: UploadFile = File(...)):
 
         print(f"[INFO] Saved image as {temp_filename}")
 
-        image = Image.open(temp_filename).convert('RGB')
+        # ❌ Don't use 'await' here — it's not an async function
+        result = client.predict(
+            image=handle_file(temp_filename),
+            api_name="/predict"
+        )
 
-        img_tensor = transform(image).unsqueeze(0)
-        img_tensor = img_tensor.to(next(model.parameters()).device)
-
-        with torch.no_grad():
-            outputs = model(img_tensor)
-            _, preds = torch.max(outputs, 1)
-            predicted_class = class_names[preds.item()]
-
-        print(f"[INFO] Gradio predicted_class: {predicted_class}")
+        print(f"[INFO] Gradio result: {result}")
 
         os.remove(temp_filename)
 
-        return JSONResponse(content={"prediction": predicted_class})
+        label = result['label'] if isinstance(result, dict) else str(result)
+        return JSONResponse(content={"prediction": label})
     
     except Exception as e:
         print(f"[ERROR] Prediction failed: {e}")
