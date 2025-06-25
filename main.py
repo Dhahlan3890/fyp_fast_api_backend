@@ -74,7 +74,7 @@ def predict(image_path, model, class_names, device='cuda' if torch.cuda.is_avail
     for i, prob in enumerate(probabilities):
         print(f"{class_names[i]}: {prob:.4f}")
     
-    return predicted_idx, confidence
+    return class_names[predicted_idx], confidence
 
 
 @app.post("/predict")
