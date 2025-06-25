@@ -10,7 +10,6 @@ import torch
 import torch.nn as nn
 from torchvision import transforms
 from PIL import Image
-import matplotlib.pyplot as plt
 import numpy as np
 from efficientnet_pytorch import EfficientNet
 
@@ -70,17 +69,6 @@ def predict(image_path, model, class_names, device='cuda' if torch.cuda.is_avail
         probabilities = torch.nn.functional.softmax(output[0], dim=0)
         confidence, predicted_idx = torch.max(probabilities, 0)
     
-    # Display results
-    image = Image.open(image_path)
-    plt.imshow(image)
-    plt.axis('off')
-    plt.title(f"Predicted: {class_names[predicted_idx]}\nConfidence: {confidence:.2f}")
-    plt.show()
-    
-    print("\nPrediction Results:")
-    print(f"Class: {class_names[predicted_idx]}")
-    print(f"Confidence: {confidence:.4f}")
-    
     # Print all class probabilities
     print("\nClass Probabilities:")
     for i, prob in enumerate(probabilities):
@@ -111,70 +99,70 @@ async def predict_image(image: UploadFile = File(...)):
 
         if label == 'Bellpepper':
             MODEL_PATH = 'best_bellpepper_model.pth'
-            CLASS_NAMES = ['unripe', 'ripe', 'overripe']  # Replace with your actual class names
+            CLASS_NAMES = ['fresh', 'intermediate', 'rotten']  # Replace with your actual class names
             NUM_CLASSES = len(CLASS_NAMES)
             model = load_model(MODEL_PATH, NUM_CLASSES)
             predicted_class, confidence = predict(temp_filename, model, CLASS_NAMES)
 
         elif label == 'Carrot':
             MODEL_PATH = 'best_carrot_model.pth'
-            CLASS_NAMES = ['unripe', 'ripe', 'overripe']
+            CLASS_NAMES = ['fresh', 'intermediate', 'rotten']
             NUM_CLASSES = len(CLASS_NAMES)
             model = load_model(MODEL_PATH, NUM_CLASSES)
             predicted_class, confidence = predict(temp_filename, model, CLASS_NAMES)
 
         elif label == 'Cucumber':
             MODEL_PATH = 'best_cucumber_model.pth'
-            CLASS_NAMES = ['unripe', 'ripe', 'overripe']
+            CLASS_NAMES = ['fresh', 'intermediate', 'rotten']
             NUM_CLASSES = len(CLASS_NAMES)
             model = load_model(MODEL_PATH, NUM_CLASSES)
             predicted_class, confidence = predict(temp_filename, model, CLASS_NAMES)
 
         elif label == 'Potato':
             MODEL_PATH = 'best_potato_model.pth'
-            CLASS_NAMES = ['unripe', 'ripe', 'overripe']
+            CLASS_NAMES = ['fresh', 'intermediate', 'rotten']
             NUM_CLASSES = len(CLASS_NAMES)
             model = load_model(MODEL_PATH, NUM_CLASSES)
             predicted_class, confidence = predict(temp_filename, model, CLASS_NAMES)
 
         elif label == 'Tomato':
             MODEL_PATH = 'best_tomato_model.pth'
-            CLASS_NAMES = ['unripe', 'ripe', 'overripe']
+            CLASS_NAMES = ['fresh', 'intermediate', 'rotten']
             NUM_CLASSES = len(CLASS_NAMES)
             model = load_model(MODEL_PATH, NUM_CLASSES)
             predicted_class, confidence = predict(temp_filename, model, CLASS_NAMES)
 
         elif label == 'Apple':
             MODEL_PATH = 'best_apple_model.pth'
-            CLASS_NAMES = ['unripe', 'ripe', 'overripe']
+            CLASS_NAMES = ['ripe', 'rotten', 'unripe']
             NUM_CLASSES = len(CLASS_NAMES)
             model = load_model(MODEL_PATH, NUM_CLASSES)
             predicted_class, confidence = predict(temp_filename, model, CLASS_NAMES)
 
         elif label == 'Banana':
             MODEL_PATH = 'best_banana_model.pth'
-            CLASS_NAMES = ['unripe', 'ripe', 'overripe']
+            CLASS_NAMES = ['ripe', 'rotten', 'unripe']
             NUM_CLASSES = len(CLASS_NAMES)
             model = load_model(MODEL_PATH, NUM_CLASSES)
             predicted_class, confidence = predict(temp_filename, model, CLASS_NAMES)
 
         elif label == 'mango':
             MODEL_PATH = 'best_mango_model.pth'
-            CLASS_NAMES = ['unripe', 'ripe', 'overripe']
+            CLASS_NAMES = ['ripe', 'rotten', 'unripe']
             NUM_CLASSES = len(CLASS_NAMES)
             model = load_model(MODEL_PATH, NUM_CLASSES)
             predicted_class, confidence = predict(temp_filename, model, CLASS_NAMES)
 
         elif label == 'oranges':
             MODEL_PATH = 'best_orange_model.pth'
-            CLASS_NAMES = ['unripe', 'ripe', 'overripe']
+            CLASS_NAMES = ['ripe', 'rotten', 'unripe']
             NUM_CLASSES = len(CLASS_NAMES)
             model = load_model(MODEL_PATH, NUM_CLASSES)
             predicted_class, confidence = predict(temp_filename, model, CLASS_NAMES)
 
         elif label == 'strawberry':
             MODEL_PATH = 'best_strawberry_model.pth'
-            CLASS_NAMES = ['unripe', 'ripe', 'overripe']
+            CLASS_NAMES = ['ripe', 'rotten', 'unripe']
             NUM_CLASSES = len(CLASS_NAMES)
             model = load_model(MODEL_PATH, NUM_CLASSES)
             predicted_class, confidence = predict(temp_filename, model, CLASS_NAMES)
@@ -183,7 +171,7 @@ async def predict_image(image: UploadFile = File(...)):
             return JSONResponse(status_code=400, content={"error": "Unsupported label"})
 
         os.remove(temp_filename)
-        return JSONResponse(content={"prediction": f"{label} + {predicted_class}"})
+        return JSONResponse(content={"prediction": f"{predicted_class}_{label}"})
 
     except Exception as e:
         print(f"[ERROR] Prediction failed: {e}")
