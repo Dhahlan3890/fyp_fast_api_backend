@@ -176,3 +176,54 @@ async def predict_image(image: UploadFile = File(...)):
     except Exception as e:
         print(f"[ERROR] Prediction failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.post("/natural-artificial")
+async def predict_image(image: UploadFile = File(...)):
+    try:
+        temp_filename = f"temp_{uuid.uuid4().hex}_{image.filename}"
+        async with aiofiles.open(temp_filename, 'wb') as out_file:
+            content = await image.read()
+            await out_file.write(content)
+
+        print(f"[INFO] Saved image as {temp_filename}")
+
+        # ❌ Don't use 'await' here — it's not an async function
+        result = client.predict(
+            image=handle_file(temp_filename),
+            api_name="/predict"
+        )
+
+        print(f"[INFO] Gradio result: {result}")
+
+        label = result['label'] if isinstance(result, dict) else str(result)
+
+
+        if label == 'Banana':
+            
+            new_result = client1.predict(
+                    image=handle_file(temp_filename),
+                    api_name="/predict"
+            )
+            print(new_result)
+            predicted_class = new_result['label'] if isinstance(new_result, dict) else str(new_result)
+
+        elif label == 'mango':
+
+            new_result = client2.predict(
+                    image=handle_file(temp_filename),
+                    api_name="/predict"
+            )
+            print(new_result)
+            predicted_class = new_result['label'] if isinstance(new_result, dict) else str(new_result)
+
+        else:
+            return JSONResponse(status_code=400, content={"error": "Unsupported label"})
+
+        os.remove(temp_filename)
+        return JSONResponse(content={"prediction": f"{predicted_class}_{label}"})
+
+    except Exception as e:
+        print(f"[ERROR] Prediction failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
