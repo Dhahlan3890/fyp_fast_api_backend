@@ -25,7 +25,8 @@ app.add_middleware(
 
 # client = Client("Dhahlan2000/predict_freshness_and_ripeness")
 client = Client("Dhahlan2000/level1_freshness_classifier")
-
+client1 = Client("Dhahlan2000/banana_classification")
+client2 = Client("Dhahlan2000/mango_classification")
 
 class RipenessClassifier(nn.Module):
     def __init__(self, num_classes):
