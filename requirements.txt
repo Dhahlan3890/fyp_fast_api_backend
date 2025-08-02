@@ -7,3 +7,5 @@ torch
 pillow
 torchvision
 efficientnet-pytorch
+python-dotenv
+google-genai
