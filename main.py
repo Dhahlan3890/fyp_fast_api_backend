@@ -21,6 +21,7 @@ import os
 
 load_dotenv()
 
+image_client = genai.Client()
 google_client = genai.Client()
 
 app = FastAPI()
@@ -253,7 +254,7 @@ async def predict_image(image: UploadFile = File(...)):
 
         image = temp_filename
 
-        plain_response = google_client.models.generate_content(
+        plain_response = image_client.models.generate_content(
             model="gemini-2.5-flash",
             contents=[image, """Give the all fruits/vegetables in the image with their quantities
                       Eg: 2 apples, 3 bananas
