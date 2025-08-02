@@ -255,11 +255,13 @@ async def predict_image(image: UploadFile = File(...)):
 
         plain_response = google_client.models.generate_content(
             model="gemini-2.5-flash",
-            contents=[image, "Give the all fruits/vegetables in the image. and specify their quantity and nutrition value."]
+            contents=[image, """Give the all fruits/vegetables in the image with their quantities
+                      Eg: 2 apples, 3 bananas
+                      """]
         )
         print(plain_response.text)
 
-        class Food(BaseModel):
+        class Fruit(BaseModel):
             name: str
             quantity: str
             nutrition: str
@@ -267,30 +269,29 @@ async def predict_image(image: UploadFile = File(...)):
         response = google_client.models.generate_content(
             model="gemini-2.5-flash",
             contents=f"""{plain_response.text}
-            give name, their quantity and nutrition value seperately""",
+            give name and quantity, nutrition value seperately""",
             config={
                 "response_mime_type": "application/json",
-                "response_schema": list[Food],
+                "response_schema": list[Fruit],
             },
         )
         # Use the response as a JSON string.
         print(response.text)
 
         # Use instantiated objects.
-        my_foods: list[Food] = response.parsed
+        my_fruits: list[Fruit] = response.parsed
 
         # Convert Food objects to dicts for JSON serialization
-        foods_dicts = [food.dict() for food in my_foods]
+        fruits_dicts = [fruit.dict() for fruit in my_fruits]
 
-        print(foods_dicts)
+        print(fruits_dicts)
 
         os.remove(temp_filename)
-        return JSONResponse(content=foods_dicts)
-    
+        return JSONResponse(content=fruits_dicts)
+
     except Exception as e:
         print(f"[ERROR] Prediction failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
-
 
 
 
