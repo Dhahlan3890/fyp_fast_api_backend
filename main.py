@@ -279,13 +279,18 @@ async def predict_image(image: UploadFile = File(...)):
         # Use instantiated objects.
         my_foods: list[Food] = response.parsed
 
+        # Convert Food objects to dicts for JSON serialization
+        foods_dicts = [food.dict() for food in my_foods]
 
-        print(my_foods)
+        print(foods_dicts)
 
         os.remove(temp_filename)
-        return JSONResponse(content=my_foods)
+        return JSONResponse(content=foods_dicts)
     
     except Exception as e:
         print(f"[ERROR] Prediction failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+
 
