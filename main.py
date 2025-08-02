@@ -255,7 +255,7 @@ async def predict_image(image: UploadFile = File(...)):
 
         plain_response = google_client.models.generate_content(
             model="gemini-2.5-flash",
-            contents=[image, "Give the all ingredients/foods in the image. and specify their quantity and nutrition value."]
+            contents=[image, "Give the all fruits/vegetables in the image. and specify their quantity and nutrition value."]
         )
         print(plain_response.text)
 
@@ -267,7 +267,7 @@ async def predict_image(image: UploadFile = File(...)):
         response = google_client.models.generate_content(
             model="gemini-2.5-flash",
             contents=f"""{plain_response.text}
-            List all foods, their quantity and nutrition value""",
+            give name, their quantity and nutrition value seperately""",
             config={
                 "response_mime_type": "application/json",
                 "response_schema": list[Food],
