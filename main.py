@@ -12,6 +12,16 @@ from torchvision import transforms
 from PIL import Image
 import numpy as np
 from efficientnet_pytorch import EfficientNet
+from google import genai
+from pydantic import BaseModel
+from PIL import Image
+from google import genai
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+google_client = genai.Client()
 
 app = FastAPI()
 
@@ -27,6 +37,7 @@ app.add_middleware(
 client = Client("Dhahlan2000/level1_freshness_classifier")
 client1 = Client("Dhahlan2000/banana_classification")
 client2 = Client("Dhahlan2000/mango_classification")
+
 
 class RipenessClassifier(nn.Module):
     def __init__(self, num_classes):
@@ -177,7 +188,7 @@ async def predict_image(image: UploadFile = File(...)):
     except Exception as e:
         print(f"[ERROR] Prediction failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
-
+    
 
 @app.post("/natural-artificial")
 async def predict_image(image: UploadFile = File(...)):
@@ -224,6 +235,56 @@ async def predict_image(image: UploadFile = File(...)):
         os.remove(temp_filename)
         return JSONResponse(content={"prediction": f"{predicted_class}_{label}"})
 
+    except Exception as e:
+        print(f"[ERROR] Prediction failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+
+@app.post("/nutrition-analysis")
+async def predict_image(image: UploadFile = File(...)):
+    try:
+        temp_filename = f"temp_{uuid.uuid4().hex}_{image.filename}"
+        async with aiofiles.open(temp_filename, 'wb') as out_file:
+            content = await image.read()
+            await out_file.write(content)
+
+        print(f"[INFO] Saved image as {temp_filename}")
+
+        image = temp_filename
+
+        plain_response = google_client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[image, "Give the all ingredients/foods in the image. and specify their quantity and nutrition value."]
+        )
+        print(plain_response.text)
+
+        class Food(BaseModel):
+            name: str
+            quantity: str
+            nutrition: str
+
+        response = google_client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=f"""{plain_response.text}
+            List all foods, their quantity and nutrition value""",
+            config={
+                "response_mime_type": "application/json",
+                "response_schema": list[Food],
+            },
+        )
+        # Use the response as a JSON string.
+        print(response.text)
+
+        # Use instantiated objects.
+        my_foods: list[Food] = response.parsed
+
+
+        print(my_foods)
+
+        os.remove(temp_filename)
+        return JSONResponse(content=my_foods)
+    
     except Exception as e:
         print(f"[ERROR] Prediction failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
