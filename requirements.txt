@@ -9,3 +9,5 @@ torchvision
 efficientnet-pytorch
 python-dotenv
 google-genai
+pillow
+ultralytics
