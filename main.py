@@ -1,5 +1,5 @@
-from fastapi import FastAPI, File, UploadFile
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, File, UploadFile, Form
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from gradio_client import Client, handle_file
 import aiofiles
@@ -18,11 +18,27 @@ from PIL import Image
 from google import genai
 from dotenv import load_dotenv
 import os
+from io import BytesIO
+from PIL import Image
+import torch
 
 load_dotenv()
 
-image_client = genai.Client()
 google_client = genai.Client()
+image_client = genai.Client()
+
+# Load YOLOv5 model (pretrained on COCO dataset)
+model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
+
+FRUITS_VEG_CLASSES = [
+    'Bellpepper', 'Carrot', 'Cucumber', 'Potato',  'Tomato',
+    'banana', 'mango', 'oranges', 'strawberry', 'apple'
+]
+
+# client = Client("Dhahlan2000/predict_freshness_and_ripeness")
+client = Client("Dhahlan2000/level1_freshness_classifier")
+client1 = Client("Dhahlan2000/banana_classification")
+client2 = Client("Dhahlan2000/mango_classification")
 
 app = FastAPI()
 
@@ -34,10 +50,48 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# client = Client("Dhahlan2000/predict_freshness_and_ripeness")
-client = Client("Dhahlan2000/level1_freshness_classifier")
-client1 = Client("Dhahlan2000/banana_classification")
-client2 = Client("Dhahlan2000/mango_classification")
+def detect_fruits_vegetables(img):
+    results = model(img)
+    detections = []
+    id_counter = 1
+    for *box, conf, cls in results.xyxy[0]:
+        label = results.names[int(cls)]
+        if label in FRUITS_VEG_CLASSES:
+            detections.append({
+                'id': id_counter,
+                'label': label,
+                'confidence': float(conf),
+                'box': [float(x) for x in box]
+            })
+            id_counter += 1
+    return detections
+
+def bounding_box(detection):
+    x1, y1, x2, y2 = detection['box']
+    return {
+        'x': x1,
+        'y': y1,
+        'width': x2 - x1,
+        'height': y2 - y1
+    }
+
+def draw_bounding_boxes(img, detections):
+    from PIL import ImageDraw
+    draw = ImageDraw.Draw(img)
+    for det in detections:
+        box = bounding_box(det)
+        x1, y1 = box['x'], box['y']
+        x2, y2 = x1 + box['width'], y1 + box['height']
+        draw.rectangle([x1, y1, x2, y2], outline="red", width=2)
+        draw.text(((x1+x2)/2, (y1+y2)/2), str(det['id']), fill="green")
+    return img
+
+def crop_from_id(img, detections, id):
+    for det in detections:
+        if det['id'] == id:
+            box = bounding_box(det)
+            return img.crop((box['x'], box['y'], box['x'] + box['width'], box['y'] + box['height']))
+    return None
 
 
 class RipenessClassifier(nn.Module):
@@ -295,4 +349,29 @@ async def predict_image(image: UploadFile = File(...)):
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
+@app.post("/fruit-detection")
+async def fruit_detection(file: UploadFile = File(...)):
+    image_bytes = await file.read()
+    img = Image.open(BytesIO(image_bytes)).convert("RGB")
+    detections = detect_fruits_vegetables(img)
+    img_with_boxes = draw_bounding_boxes(img, detections)
+    buf = BytesIO()
+    img_with_boxes.save(buf, format="JPEG")
+    buf.seek(0)
+    return StreamingResponse(buf, media_type="image/jpeg")
 
+@app.post("/crop-from-id")
+async def crop_from_id_api(
+    file: UploadFile = File(...),
+    id: int = Form(...)
+):
+    image_bytes = await file.read()
+    img = Image.open(BytesIO(image_bytes)).convert("RGB")
+    detections = detect_fruits_vegetables(img)
+    cropped_img = crop_from_id(img, detections, id)
+    if cropped_img:
+        buf = BytesIO()
+        cropped_img.save(buf, format="JPEG")
+        buf.seek(0)
+        return StreamingResponse(buf, media_type="image/jpeg")
+    return {"error": "No cropped image found for the given ID."}
