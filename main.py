@@ -22,10 +22,21 @@ from io import BytesIO
 from PIL import Image
 import torch
 
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 load_dotenv()
 
 google_client = genai.Client()
-image_client = genai.Client()
+# image_client = genai.Client()
 
 # Load YOLOv5 model (pretrained on COCO dataset)
 model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
@@ -39,16 +50,6 @@ FRUITS_VEG_CLASSES = [
 client = Client("Dhahlan2000/level1_freshness_classifier")
 client1 = Client("Dhahlan2000/banana_classification")
 client2 = Client("Dhahlan2000/mango_classification")
-
-app = FastAPI()
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 def detect_fruits_vegetables(img):
     results = model(img)
@@ -306,28 +307,37 @@ async def predict_image(image: UploadFile = File(...)):
 
         print(f"[INFO] Saved image as {temp_filename}")
 
-        image = temp_filename
+        # image = temp_filename
 
-        plain_response = image_client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=[image, """Give the all fruits/vegetables in the image with their quantities
-                      Eg: 2 apples, 3 bananas
-                      """]
+        # plain_response = image_client.models.generate_content(
+        #     model="gemini-2.5-flash",
+        #     contents=[image, """Give the all fruits/vegetables in the image with their quantities
+        #               Eg: 2 apples, 3 bananas
+        #               """]
+        # )
+        # print(plain_response.text)
+
+        result = client.predict(
+            image=handle_file(temp_filename),
+            api_name="/predict"
         )
-        print(plain_response.text)
+
+        print(f"[INFO] Gradio result: {result}")
+
+        label = result['label'] if isinstance(result, dict) else str(result)
 
         class Fruit(BaseModel):
             name: str
-            quantity: str
-            nutrition: str
+            nutrition: list[str]
+            calories: str
 
         response = google_client.models.generate_content(
             model="gemini-2.5-flash",
-            contents=f"""{plain_response.text}
-            give name and quantity, nutrition value seperately""",
+            contents=f"""{label}
+            give the name, nutrition level and calories of the above""",
             config={
                 "response_mime_type": "application/json",
-                "response_schema": list[Fruit],
+                "response_schema": Fruit,
             },
         )
         # Use the response as a JSON string.
@@ -337,7 +347,10 @@ async def predict_image(image: UploadFile = File(...)):
         my_fruits: list[Fruit] = response.parsed
 
         # Convert Food objects to dicts for JSON serialization
-        fruits_dicts = [fruit.dict() for fruit in my_fruits]
+        if isinstance(my_fruits, tuple) or isinstance(my_fruits, list):
+            fruits_dicts = [fruit.model_dump() for fruit in my_fruits]
+        else:
+            fruits_dicts = [my_fruits.model_dump()]
 
         print(fruits_dicts)
 
